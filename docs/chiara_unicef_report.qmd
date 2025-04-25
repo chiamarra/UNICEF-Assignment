@@ -1,0 +1,1451 @@
+---
+title: "Assignment: Quarto Report"
+author: "Chiara Marra"
+date: today
+format:
+  html:
+    embed-resources: false
+    code-fold: true
+    toc: false  
+    number-sections: false
+    smooth-scroll: true
+    theme: cosmo
+    css: styles.css
+    self-contained: true
+---
+
+![](Logo_of_UNICEF.svg.png){width=200px}
+
+**Course**: BAA1030 – Data Analytics and Storytelling  
+**Source**: UNICEF
+
+<div class="floating-toc">
+  <strong>Table of Contents</strong>
+  <ul>
+    <li><a href="#intro">Thirst for Health: Unequal childhoods in a divided world</a></li>
+    <li><a href="#section-2">Where does the health gap lie? Water access and ORS coverage for children under 5 around the world</a></li>
+    <li><a href="#bottom-performers">Worst Performers: Where interventions are urgently needed</a></li>
+    <li><a href="#socio-economic">Connecting the Dots: Water Access, Health, and Socioeconomic Systems</a></li>
+    <li><a href="#ors-coverage">The Access-Care gap: ORS Coverage vs Birth Rate</a></li>
+    <li><a href="#gender-access">ORS Access Across Genders: Disaggregated view</a></li>
+    <li><a href="#progress-over-time">Progress Over Time: UNICEF’s Role</a></li>
+    <li><a href="#conclusion">From awareness to action: Together, We can protect every child’s future</a></li>
+  </ul>
+</div>
+
+
+```{python}
+#| echo: false
+#| eval: true
+from IPython.display import display, HTML
+
+html_title = """
+<div id="intro" style="
+    background: linear-gradient(to right, #1CABE2, #0077b6);
+    color: white;
+    padding: 0.8rem 1.5rem;
+    font-size: 1.4rem;
+    font-weight: 600;
+    border-radius: 12px;
+    margin: 2rem auto 1rem auto;
+    width: fit-content;
+    text-align: center;
+    font-family: 'Segoe UI', sans-serif;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+">
+Thirst for Health: Unequal childhoods in a divided world
+</div>
+"""
+display(HTML(html_title))
+```
+
+```{python}
+#| echo: false
+#| eval: true
+from IPython.display import display, HTML
+intro_html = """
+<style>
+.card-intro {
+    max-width: 48rem;
+    padding: 1.5rem;
+    border-radius: 10px;
+    margin: 2rem auto;
+    color: white;
+    background: linear-gradient(135deg, #1CABE2, #66c2ff);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    border-left: 6px solid #17a2b8;
+    text-align: center;
+    line-height: 1.6;
+    font-size: 1rem;
+}
+
+.highlight-box {
+    margin: 1rem auto;
+    background-color: rgba(255,255,255,0.3);
+    padding: 1rem;
+    border-radius: 6px;
+    border-left: 4px solid #17a2b8;
+    font-style: italic;
+    display: inline-block;
+    max-width: 90%;
+    line-height: 1.5;
+}
+</style>
+
+<div class="card-intro">
+    Nearly <strong>2.2 billion people</strong> lack access to <em>safely managed drinking water</em>. Among them, children are the most vulnerable, with over <strong>443,000 child deaths annually</strong> linked to preventable diarrheal diseases. These lives could often be saved with two essential tools: <strong>clean water</strong> and <strong>Oral Rehydration Solution (ORS)</strong>.
+    <br><br>
+    This indicators tell a story of <strong>disparity and determination</strong>. It visualizes global inequalities and UNICEF's initiatives, through a lens of geography, gender, and socioeconomics factors.
+
+    <div class="highlight-box">
+        <strong>The goal?</strong> To empower action through knowledge; spotlighting where change is happening, and where urgent interventions remain needed.
+    </div>
+</div>
+"""
+display(HTML(intro_html))
+```
+
+```{python}
+#| echo: false
+#| eval: true
+from IPython.display import display, HTML
+section_title = """
+<div id="section-2" style="
+    background: linear-gradient(to right, #ffffff, #f2f2f2);
+    color: #1CABE2;
+    padding: 0.8rem 1.5rem;
+    font-size: 1.4rem;
+    font-weight: 700;
+    border-radius: 10px;
+    margin: 1.5rem auto 1rem auto;
+    width: fit-content;
+    text-align: center;
+    font-family: 'Segoe UI', sans-serif;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+">
+Where does the health gap lie? Water access and ORS coverage for children under 5 around the world
+</div>
+"""
+display(HTML(section_title))
+```
+
+```{python}
+#| echo: false
+#| eval: true
+# HEAT MAP
+import pandas as pd
+import plotly.graph_objects as go
+# Loading data
+water_df = pd.read_csv("unicef_indicator_1_cleaned.csv")
+ors_df = pd.read_csv("unicef_indicator_2_cleaned.csv")
+meta_df = pd.read_csv("unicef_metadata_final.csv")
+
+# Cleaning
+water_df["Value_in_percentage%"] = water_df["Value_in_percentage%"].str.rstrip('%').astype(float)
+ors_df["Value_in_percentage%"] = ors_df["Value_in_percentage%"].str.rstrip('%').astype(float)
+
+# Aggregating and renaming
+avg_water = water_df.groupby("country", as_index=False).agg({
+    "Value_in_percentage%": "mean", "alpha_3_code": "first"
+}).rename(columns={"Value_in_percentage%": "unimproved_water_pct", "alpha_3_code": "iso3"})
+
+avg_ors = ors_df.groupby("Country", as_index=False).agg({
+    "Value_in_percentage%": "mean"
+}).rename(columns={"Country": "country", "Value_in_percentage%": "ors_coverage_pct"})
+
+avg_meta = meta_df.groupby("country", as_index=False).agg({
+    "GDP per capita (constant 2015 US$)": "mean",
+    "Inflation, consumer prices (annual %)": "mean",
+    "alpha_3_code": "first"
+}).rename(columns={
+    "GDP per capita (constant 2015 US$)": "gdp_per_capita",
+    "Inflation, consumer prices (annual %)": "inflation",  
+    "alpha_3_code": "iso3"
+})
+
+# Merging
+merged_df = avg_water.merge(avg_ors, on="country", how="inner")
+merged_df = merged_df.merge(avg_meta, on="country", suffixes=("_water", "_meta"))
+merged_df = merged_df.drop(columns=["iso3_water"]).rename(columns={"iso3_meta": "iso3"}).dropna(subset=["iso3"])
+
+# Filtering
+worst_water = merged_df.nlargest(10, "unimproved_water_pct")
+worst_ors = merged_df.nsmallest(10, "ors_coverage_pct")
+
+# Color scale 
+vibrant_colorscale = [
+    [0.0, "#87CEEB"],
+    [0.2, "#4682B4"],
+    [0.4, "#6A5ACD"],
+    [0.6, "#8B0000"],
+    [0.8, "#FF8C00"],
+    [1.0, "#FFD700"]
+]
+
+#  Figure
+fig = go.Figure()
+# Choropleth map
+fig.add_trace(go.Choropleth(
+    locations=merged_df["iso3"],
+    z=merged_df["unimproved_water_pct"],
+    text=merged_df["country"],
+    colorscale=vibrant_colorscale,
+    zmin=0,
+    zmax=50,
+    marker_line_color="white",
+    marker_line_width=0.3,
+    colorbar=dict(
+        title="% Unimproved Water Access",
+        tickfont=dict(size=11),
+        thickness=15,
+        len=0.75,
+        x=1.02,
+        y=0.5,
+        xanchor="left",
+        yanchor="middle"
+    ),
+    hovertemplate="<b>%{text}</b><br>Unimproved Water Access: %{z:.1f}%<extra></extra>"
+))
+# ORS coverage 
+fig.add_trace(go.Scattergeo(
+    locations=merged_df["iso3"],
+    mode="markers",
+    text=[
+        f"<b>{row['country']}</b><br>"
+        f"ORS Coverage: {row['ors_coverage_pct']:.1f}%<br>"
+        f"GDP: ${row['gdp_per_capita']:.0f}<br>"
+        f"Inflation: {row['inflation']:.1f}%"
+        for _, row in merged_df.iterrows()
+    ],
+    marker=dict(
+        size=merged_df["ors_coverage_pct"].clip(upper=60) / 2.5,
+        color="lightgreen",
+        opacity=0.8,
+        line=dict(width=1.2, color="gray")
+    ),
+    name="ORS Coverage"
+))
+
+# Worst 10 water
+fig.add_trace(go.Scattergeo(
+    locations=worst_water["iso3"],
+    mode="markers",
+    marker=dict(size=10, color="darkred", symbol="x", line=dict(width=1, color="black")),
+    text=[f"<b>{row['country']}</b><br>Unimproved Water: {row['unimproved_water_pct']:.1f}%" for _, row in worst_water.iterrows()],
+    name="10 Worst Water Access"
+))
+
+# Worst 10 ORS
+fig.add_trace(go.Scattergeo(
+    locations=worst_ors["iso3"],
+    mode="markers",
+    marker=dict(size=10, color="orange", symbol="diamond", line=dict(width=1, color="black")),
+    text=[f"<b>{row['country']}</b><br>ORS Coverage: {row['ors_coverage_pct']:.1f}%" for _, row in worst_ors.iterrows()],
+    name="10 Worst ORS Coverage"
+))
+
+#  Layout
+fig.update_layout(
+    geo=dict(
+        showframe=False,
+        showcoastlines=False,
+        projection_type="natural earth",
+        center=dict(lat=10, lon=0),
+        projection_rotation=dict(lon=0),
+        lonaxis_range=[-180, 180],
+        lataxis_range=[-60, 90]
+    ),
+    margin=dict(l=20, r=40, t=40, b=20),
+    height=500,
+    width=1000,
+    legend=dict(
+        orientation="h",
+        x=0.5,
+        y=1.02,
+        xanchor="center",
+        yanchor="bottom",
+        font=dict(size=12),
+        bgcolor="rgba(255,255,255,0.95)"
+    )
+)
+fig.show()
+```
+
+```{python}
+#| echo: false
+#| eval: true
+# HEAT MAP COMMENTARY
+from IPython.display import display, HTML
+heatmap_commentary = """
+<style>
+.card-heatmap {
+    max-width: 850px;
+    margin: 1.5rem auto 1rem auto;
+    padding: 1.5rem;
+    background-color: #1CABE2;
+    color: white;
+    font-size: 1rem;
+    line-height: 1.5;
+    border-radius: 14px;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.08);
+    text-align: left;
+}
+.card-heatmap ul {
+    margin-top: 1rem;
+    padding-left: 1.2rem;
+    list-style: none;
+}
+.card-heatmap li::before {
+    content: "✔";
+    font-weight: bold;
+    margin-right: 8px;
+    color: #ffe600;
+}
+</style>
+
+<div class="card-heatmap">
+  This visualization presents a layered geographic assessment: countries shaded in  blue represent lower rates of <strong>unimproved water access</strong>, while the <span style="color: #90ee90; font-weight: bold;">light green bubbles</span> indicate levels of <strong>ORS coverage</strong>.
+  <br><br>
+  Together, they expose a disturbing reality: in many regions,particularly <strong style="color: #ffe600;">Sub-Saharan Africa and South Asia</strong>, the areas with the worst water infrastructure are also those with the poorest access to lifesaving treatment.
+  <br><br>
+  Highlighted markers spotlight the <em>worst 10 performers</em> for each metric, emphasizing where <strong>immediate, integrated interventions</strong> are most critical.
+  <ul>
+    <li>These disparities serve as a geographic dimension for UNICEF’s targeted deployment of efforts and health system support.</li>
+  </ul>
+</div>
+"""
+display(HTML(heatmap_commentary))
+```
+
+```{python}
+#| echo: false
+#| eval: true
+
+from IPython.display import display, HTML
+section_title = """
+<div id="bottom-performers" style="
+    background: linear-gradient(to right, #ffffff, #f2f2f2);
+    color: #1CABE2;
+    padding: 0.8rem 1.5rem;
+    font-size: 1.4rem;
+    font-weight: 700;
+    border-radius: 10px;
+    margin: 1.5rem auto 1rem auto;
+    width: fit-content;
+    text-align: center;
+    font-family: 'Segoe UI', sans-serif;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+">
+Worst Performers: Where interventions are urgently needed
+</div>
+"""
+display(HTML(section_title))
+```
+
+```{python}
+#| echo: false
+#| eval: true
+
+import pandas as pd
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+# Loading and cleaning
+indicator_1 = pd.read_csv("unicef_indicator_1_cleaned.csv")
+indicator_2 = pd.read_csv("unicef_indicator_2_cleaned.csv")
+meta_df = pd.read_csv("unicef_metadata_final.csv")
+
+indicator_1["Value_in_percentage%"] = indicator_1["Value_in_percentage%"].str.rstrip('%').astype(float)
+indicator_2["Value_in_percentage%"] = indicator_2["Value_in_percentage%"].str.rstrip('%').astype(float)
+
+avg_water = indicator_1.groupby("country", as_index=False)["Value_in_percentage%"].mean().rename(columns={"Value_in_percentage%": "Unsafe Water %"})
+avg_ors = indicator_2.groupby("Country", as_index=False)["Value_in_percentage%"].mean().rename(columns={"Value_in_percentage%": "ORS Coverage %"})
+meta_avg = meta_df.groupby("country", as_index=False)[["GDP per capita (constant 2015 US$)", "Inflation, consumer prices (annual %)"]].mean()
+
+# Merging
+water_merged = avg_water.merge(meta_avg, on="country")
+ors_merged = avg_ors.merge(meta_avg, left_on="Country", right_on="country")
+worst_water = water_merged.sort_values("Unsafe Water %", ascending=False).head(5)
+worst_ors = ors_merged.sort_values("ORS Coverage %", ascending=True).head(5)
+
+# Global averages
+avg_gdp = meta_df["GDP per capita (constant 2015 US$)"].mean()
+avg_inflation = meta_df["Inflation, consumer prices (annual %)"].mean()
+
+#  Color scales
+water_colors = [f'rgba(100, 149, 237, {0.3 + 0.7 * (v / 100):.2f})' for v in worst_water['Unsafe Water %']]
+ors_colors = [f'rgba(144, 238, 144, {0.3 + 0.7 * (v / 100):.2f})' for v in worst_ors['ORS Coverage %']]
+
+# Wrapping long names
+worst_water['country'] = worst_water['country'].apply(lambda c: c if len(c) <= 15 else c.replace(" ", "<br>"))
+worst_ors['Country'] = worst_ors['Country'].apply(lambda c: c if len(c) <= 15 else c.replace(" ", "<br>"))
+
+# Setting up subplots
+fig = make_subplots(
+    rows=1, cols=2,
+    subplot_titles=["Worst Water Access", "Worst ORS Coverage"],
+    horizontal_spacing=0.12
+)
+
+# Unsafe Water
+fig.add_trace(go.Bar(
+    y=worst_water['country'],
+    x=worst_water['Unsafe Water %'],
+    orientation='h',
+    marker_color=water_colors,
+    text=[f"{v:.1f}%" for v in worst_water['Unsafe Water %']],
+    textposition="inside",
+    name='Unsafe Water %'
+), row=1, col=1)
+
+fig.add_trace(go.Scatter(
+    y=worst_water['country'],
+    x=worst_water["Inflation, consumer prices (annual %)"],
+    mode='markers',
+    marker=dict(symbol="triangle-up", size=12, color='indianred'),
+    name="Inflation %"
+), row=1, col=1)
+
+fig.add_trace(go.Scatter(
+    y=worst_water['country'],
+    x=worst_water["GDP per capita (constant 2015 US$)"] / 100,
+    mode='markers',
+    marker=dict(symbol="diamond", size=12, color='goldenrod'),
+    name="GDP"
+), row=1, col=1)
+
+# ORS Coverage
+fig.add_trace(go.Bar(
+    y=worst_ors['Country'],
+    x=worst_ors['ORS Coverage %'],
+    orientation='h',
+    marker_color=ors_colors,
+    text=[f"{v:.1f}%" for v in worst_ors['ORS Coverage %']],
+    textposition="inside",
+    name='ORS Coverage %'
+), row=1, col=2)
+
+fig.add_trace(go.Scatter(
+    y=worst_ors['Country'],
+    x=worst_ors["Inflation, consumer prices (annual %)"],
+    mode='markers',
+    marker=dict(symbol="triangle-up", size=12, color='indianred'),
+    name="Inflation %",
+    showlegend=False
+), row=1, col=2)
+
+fig.add_trace(go.Scatter(
+    y=worst_ors['Country'],
+    x=worst_ors["GDP per capita (constant 2015 US$)"] / 100,
+    mode='markers',
+    marker=dict(symbol="diamond", size=12, color='goldenrod'),
+    name="GDP",
+    showlegend=False
+), row=1, col=2)
+
+# Reference lines
+for col in [1, 2]:
+    fig.add_vline(x=avg_inflation, line=dict(color='indianred', dash='dot'), row=1, col=col)
+    fig.add_vline(x=avg_gdp / 100, line=dict(color='goldenrod', dash='dot'), row=1, col=col)
+
+# Layout 
+fig.update_layout(
+    height=420,
+    width=780,
+    font=dict(size=11),
+    plot_bgcolor="#f8f9fa",
+    barmode="group",
+    margin=dict(l=30, r=30, t=40, b=40),
+    legend=dict(
+        orientation="h",
+        x=0.5,
+        y=-0.2,
+        xanchor="center",
+        yanchor="bottom",
+        font=dict(size=11)
+    )
+)
+
+fig.update_xaxes(title="Percentage", range=[0, 100], showgrid=True, gridcolor='rgba(0,0,0,0.05)')
+fig.update_yaxes(showgrid=False)
+
+fig.show()
+```
+
+```{python}
+#| echo: false
+#| eval: true
+from IPython.display import display, HTML
+# BAR CHART COMMENTARY
+bottom_html = """
+<style>
+.card-bottom {
+    max-width: 50rem;
+    margin: 2rem auto;
+    padding: 1rem 1.4rem;
+    background-color: #1CABE2;
+    color: white;
+    font-size: 1rem;
+    line-height: 1.4;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.06);
+    text-align: left;
+}
+.card-bottom ul {
+    padding-left: 1.2rem;
+    margin-top: 1rem;
+}
+.card-bottom li {
+    margin-bottom: 0.6rem;
+}
+.highlight-country {
+    background-color: rgba(255, 255, 255, 0.25);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: bold;
+    color: white;
+}
+</style>
+
+<div class="card-bottom">
+  <p>In the dual-bar plot above, the data reveal a story of severe vulnerability: countries like
+    <span class="highlight-country">Guinea-Bissau</span>, <span class="highlight-country">Chad</span>, and <span class="highlight-country">Mozambique</span>
+    face extreme barriers in access to clean water, with coverage falling below <strong>36%</strong>.
+  </p>
+
+  <p>Simultaneously, <span class="highlight-country">Ivory Coast</span>, <span class="highlight-country">Togo</span>, and <span class="highlight-country">Azerbaijan</span>
+     report <strong>ORS coverage under 15%</strong>, a dangerously low figure given the treatability of diarrheal diseases with basic interventions.</p>
+
+  <ul>
+    <li>This correlation reveals a compounding risk profile: <strong>low water access + low treatment access = high preventable mortality</strong>.</li>
+  </ul>
+
+  <p>Layering <em>GDP per capita</em> and <em>inflation markers</em> into the same frame underscores how economic development has a role in this disparities. These nations reveal a <em>regional</em> underperforming trend, signaling urgent need for <strong>cross-sectoral intervention</strong>.</p>
+
+  <p>UNICEF’s data reveal that  health inputs are highly impacted by the socioeconomic-sphere. Most struggling countries are from sub-Saharan Africa and Asia, with outliers like Kiribati, Argentina, and Montenegro. Therefore the empowerement of these ecosystems holistically is the only solution to disrupt cycles of neglect.</p>
+</div>
+"""
+display(HTML(bottom_html))
+```
+
+```{python}
+#| echo: false
+#| eval: true
+
+from IPython.display import display, HTML
+
+# MULTI SCATTER PLOT TITLE
+section_title = """
+<div id="socio-economic" style="
+    background: linear-gradient(to right, #ffffff, #f2f2f2);
+    color: #1CABE2;
+    padding: 0.8rem 1.5rem;
+    font-size: 1.4rem;
+    font-weight: 700;
+    border-radius: 10px;
+    margin: 1.5rem auto 1rem auto;
+    width: fit-content;
+    text-align: center;
+    font-family: 'Segoe UI', sans-serif;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+">
+Connecting the Dots: Water Access, Health, and Socioeconomic Systems
+</div>
+"""
+display(HTML(section_title))
+```
+
+```{python}
+#| echo: false
+#| eval: true
+
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import MinMaxScaler
+import pycountry_convert as pc
+# MULTI SCATTER PLOT
+# Loading datasets
+indicator_1 = pd.read_csv("unicef_indicator_1_cleaned.csv")
+meta_df = pd.read_csv("unicef_metadata_final.csv")
+
+# Cleaning 
+indicator_1["Value_in_percentage%"] = indicator_1["Value_in_percentage%"].str.rstrip('%').astype(float)
+avg_water = indicator_1.groupby("country", as_index=False)["Value_in_percentage%"].mean()
+avg_water.rename(columns={"Value_in_percentage%": "% Unimproved Water Access"}, inplace=True)
+
+# Socioeconomic indicators
+socio_cols = [
+    "Life expectancy at birth, total (years)",
+    "Birth rate, crude (per 1,000 people)",
+    "GDP per capita (constant 2015 US$)"
+]
+meta_avg = meta_df.groupby("country", as_index=False)[socio_cols].mean()
+df = avg_water.merge(meta_avg, on="country")
+
+#  Continent
+def get_continent(country):
+    try:
+        code = pc.country_name_to_country_alpha2(country)
+        cont_code = pc.country_alpha2_to_continent_code(code)
+        return {
+            "AF": "Africa", "AS": "Asia", "EU": "Europe",
+            "NA": "North America", "SA": "South America", "OC": "Oceania"
+        }.get(cont_code, "Other")
+    except:
+        return "Other"
+
+df["Continent"] = df["country"].apply(get_continent)
+
+#  GDP for bubble sizing
+scaler = MinMaxScaler((10, 60))
+df["GDP Size"] = scaler.fit_transform(df[["GDP per capita (constant 2015 US$)"]])
+
+# Setup
+indicators = {
+    "Life Expectancy": "Life expectancy at birth, total (years)",
+    "Birth Rate": "Birth rate, crude (per 1,000 people)"
+}
+continent_colors = {
+    "Africa": "#66c2a5", "Asia": "#fc8d62", "Europe": "#8da0cb",
+    "North America": "#e78ac3", "South America": "#a6d854",
+    "Oceania": "#ffd92f", "Other": "#b3b3b3"
+}
+
+# Plotly for regression
+data, buttons = [], []
+
+for i, (label, column) in enumerate(indicators.items()):
+    temp_df = df[["country", "% Unimproved Water Access", column, "GDP Size", "Continent"]].dropna()
+    X = temp_df["% Unimproved Water Access"].values.reshape(-1, 1)
+    y = temp_df[column].values
+
+    # Regression
+    reg = LinearRegression().fit(X, y)
+    x_line = np.linspace(0, 100, 100)
+    y_line = reg.predict(x_line.reshape(-1, 1))
+
+    # Outliers
+    residuals = np.abs(y - reg.predict(X).flatten())
+    top_outliers = residuals.argsort()[::-1][:5]
+    text_labels = [temp_df.iloc[j]["country"] if j in top_outliers else "" for j in range(len(temp_df))]
+
+    # Scatter
+    scatter = go.Scatter(
+        x=temp_df["% Unimproved Water Access"],
+        y=temp_df[column],
+        mode="markers+text",
+        text=text_labels,
+        textposition="top center",
+        marker=dict(
+            size=temp_df["GDP Size"],
+            color=[continent_colors.get(c, "gray") for c in temp_df["Continent"]],
+            opacity=0.85,
+            line=dict(width=0.5, color="black")
+        ),
+        hovertext=temp_df["country"],
+        hovertemplate="<b>%{hovertext}</b><br>" +
+                      f"{label}: "+"%{y:.1f}<br>" +
+                      "Unimproved Water Access: %{x:.1f}%<br>" +
+                      "GDP per Capita: %{marker.size:.0f} $" +
+                      "<extra></extra>",
+        name=label,
+        visible=(i == 0)  
+    )
+
+    line = go.Scatter(
+        x=x_line,
+        y=y_line,
+        mode="lines",
+        name=f"{label} Regression",
+        line=dict(color="black", dash="dot"),
+        visible=(i == 0),  
+        legendgroup="regression"
+    )
+      
+    # Regression line
+    line = go.Scatter(
+        x=x_line,
+        y=y_line,
+        mode="lines",
+        name=f"{label} Regression",
+        line=dict(color="black", dash="dot"),
+        visible=(i == 0),
+        legendgroup="regression"
+    )
+
+    data.extend([scatter, line])
+    vis = [False] * (2 * len(indicators))
+    vis[2*i] = vis[2*i + 1] = True
+    buttons.append(dict(label=label, method="update", args=[{"visible": vis}]))
+
+#  Continent legends
+for cont, color in continent_colors.items():
+    data.append(go.Scatter(x=[None], y=[None], mode='markers',
+                           marker=dict(size=15, color=color),
+                           name=cont, legendgroup=cont, showlegend=True))
+
+#  GDP legend
+data.append(go.Scatter(x=[None], y=[None], mode="markers",
+                       marker=dict(size=30, color="lightgray", opacity=0.5, line=dict(width=0.5, color="black")),
+                       name="Bubble Size: GDP per Capita",
+                       showlegend=True, legendgroup="size"))
+
+# Layout
+layout = go.Layout(
+    xaxis=dict(title="% Unimproved Water Access", range=[-20, 100], gridcolor="lightgrey"),
+    yaxis=dict(title="Socio-Economic Indicator", range=[0, 100], gridcolor="lightgrey"),
+    height=600,
+    margin=dict(t=100, b=100, l=100, r=250),
+    plot_bgcolor="#f8f9fa",
+    font=dict(size=14),
+
+    # Dropdown
+    updatemenus=[dict(
+        buttons=buttons,
+        direction="down",
+        showactive=True,
+        x=1.03,
+        xanchor="left",
+        y=0.35,
+        yanchor="top",
+        pad={"r": 10, "t": 10},
+        bgcolor="#ffffff",
+        bordercolor="#cccccc",
+        borderwidth=1
+    )],
+
+    # Legend
+    legend=dict(
+        title="Legend",
+        yanchor="top",
+        y=1.0,
+        xanchor="left",
+        x=1.02,
+        bgcolor="rgba(255,255,255,0)",
+        bordercolor="#eeeeee"
+    )
+)
+# Plot
+fig = go.Figure(data=data, layout=layout)
+fig.show()
+```
+
+```{python}
+#| echo: false
+#| eval: true
+from IPython.display import display, HTML
+# COMMENTARY MULTI SCATTER PLOT
+fig.update_layout(
+    geo=dict(
+        showframe=False,
+        showcoastlines=False,
+        projection_type="natural earth"
+    ),
+    margin=dict(l=0, r=0, t=0, b=0),
+    height=600,
+    width=1000,
+    title="Unimproved Water Access and ORS Coverage: A Global Comparison",
+    coloraxis=dict(
+        colorbar=dict(
+            title=dict(text="% Unsafe Water Access", font=dict(size=12)),
+            tickfont=dict(size=10),
+            thickness=10,
+            len=0.25,
+            x=1.05,
+            y=0.5,
+            yanchor="middle"
+        )
+    ),
+    legend=dict(
+        orientation="v",
+        x=1.02,
+        y=0.85,
+        font=dict(size=12),
+        traceorder="normal",
+        bgcolor="rgba(255,255,255,0.95)",
+        bordercolor="rgba(0,0,0,0)"
+    )
+)
+section4_body = """
+<style>
+.bg-section4 {
+    background-color: #1CABE2;
+    color: white;
+    padding: 1.5rem;
+    border-radius: 14px;
+    box-shadow: 0 5px 10px rgba(0,0,0,0.08);
+    max-width: 850px;
+    margin: 2rem auto;
+    line-height: 1.6;
+    font-size: 1rem;
+}
+.bg-section4 .highlight-country {
+    background-color: #ff7f7f;
+    border-radius: 6px;
+    padding: 0 0.4rem;
+    font-weight: bold;
+}
+</style>
+
+<div class="bg-section4">
+  This <strong>multiscatter plot</strong> offers a dual-lens view into how <strong>unimproved water access</strong> intersects with two critical dimensions:
+  <strong>birth rate</strong> and <strong>life expectancy</strong>. These variables are not simply outcomes, they're indicators of broader public health resilience.
+
+  <br><br>
+  In the <strong>Birth Rate panel</strong>, nations with high levels of population using unimproved water show a <strong>negative correlation</strong> with fertility rates,underscoring how limited access to healthcare and infrastructure perpetuates reproductive pressure. Conversely, the <strong>Life Expectancy panel</strong> reveals a clear positive relationship: <em>as water access improves, average lifespans increase dramatically</em>. Countries like <span class="highlight-country">South Sudan</span> and <span class="highlight-country">Liberia</span> sit far below global norms, highlighting zones of urgent intervention.
+
+  <br><br>
+  Bubble size encodes <strong>GDP per capita</strong>, visually reinforcing the socioeconomic dimension of health equity. The trend is unmistakable: <em>wealth correlates with clean water access, which in turn predicts longevity</em>. Yet exceptions like <strong>Kiribati</strong> and <strong>Marshall Islands</strong> remind us that governance, geography, and global support also shape outcomes.
+
+  <br><br>
+  <ul>
+    <li><strong>This cycle of: poor water access → poor health → high birth rates,is both a cause and consequence of stagnated development.</strong></li>
+  </ul>
+
+  <div style="margin-top: 1rem; font-style: italic;">
+    This multivariate visualization offers a clear message: investment in water systems is not just am health issue, it’s foundational to breaking cycles of vulnerability and enabling long-term demographic and economic progress.
+  </div>
+</div>
+"""
+display(HTML(section4_body))
+```
+
+```{python}
+#| echo: false
+#| eval: true
+from IPython.display import display, HTML
+# ORS SCATTER PLOT
+section_title = """
+<div id="ors-coverage" style="
+    background: linear-gradient(to right, #ffffff, #f2f2f2);
+    color: #1CABE2;
+    padding: 0.8rem 1.5rem;
+    font-size: 1.4rem;
+    font-weight: 700;
+    border-radius: 10px;
+    margin: 1.5rem auto 1rem auto;
+    width: fit-content;
+    text-align: center;
+    font-family: 'Segoe UI', sans-serif;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+">
+The Access-Care gap: ORS Coverage vs Birth Rate
+</div>
+"""
+display(HTML(section_title))
+```
+
+```{python}
+#| echo: false
+#| eval: true
+
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import MinMaxScaler
+
+# Loading Data
+indicator_1 = pd.read_csv("unicef_indicator_1_cleaned.csv")
+indicator_2 = pd.read_csv("unicef_indicator_2_cleaned.csv")
+meta_df = pd.read_csv("unicef_metadata_final.csv")
+
+# Cleaning
+
+# Fixing % 
+indicator_2["Value_in_percentage%"] = indicator_2["Value_in_percentage%"].str.rstrip('%').astype(float)
+indicator_1["Value_in_percentage%"] = indicator_1["Value_in_percentage%"].str.rstrip('%').astype(float)
+
+# Average 
+avg_ors = indicator_2.groupby("Country", as_index=False)["Value_in_percentage%"].mean()
+avg_ors.rename(columns={"Value_in_percentage%": "ORS Treatment Coverage"}, inplace=True)
+
+# Averages
+avg_unimproved = indicator_1.groupby("country", as_index=False)["Value_in_percentage%"].mean()
+avg_unimproved.rename(columns={"Value_in_percentage%": "% Unimproved Water Access"}, inplace=True)
+
+# Socio-economic indicators
+socio_cols = [
+    "Birth rate, crude (per 1,000 people)",
+    "GDP per capita (constant 2015 US$)"
+]
+meta_avg = meta_df.groupby("country", as_index=False)[socio_cols].mean()
+
+# Merging
+df = avg_ors.merge(meta_avg, left_on="Country", right_on="country", how="inner").merge(avg_unimproved, on="country", how="left")
+
+# Continent 
+def get_continent(country):
+    try:
+        code = pc.country_name_to_country_alpha2(country)
+        cont_code = pc.country_alpha2_to_continent_code(code)
+        return {
+            "AF": "Africa", "AS": "Asia", "EU": "Europe",
+            "NA": "North America", "SA": "South America", "OC": "Oceania"
+        }.get(cont_code, "Other")
+    except:
+        return "Other"
+
+df["Continent"] = df["country"].apply(get_continent)
+
+
+#  GDP for Bubble Size
+scaler = MinMaxScaler((10, 60))
+df["GDP Size"] = scaler.fit_transform(df[["GDP per capita (constant 2015 US$)"]])
+
+# Cleaning 
+df_clean = df.dropna(subset=[
+    "Birth rate, crude (per 1,000 people)", "ORS Treatment Coverage", "GDP Size", "Continent"
+])
+
+# Regression
+X = df_clean["Birth rate, crude (per 1,000 people)"].values.reshape(-1, 1)
+y = df_clean["ORS Treatment Coverage"].values
+reg = LinearRegression().fit(X, y)
+x_line = np.linspace(df_clean["Birth rate, crude (per 1,000 people)"].min(), df_clean["Birth rate, crude (per 1,000 people)"].max(), 100)
+y_line = reg.predict(x_line.reshape(-1, 1))
+
+# Top 5 Outliers
+residuals = np.abs(y - reg.predict(X).flatten())
+top_outliers = residuals.argsort()[::-1][:5]
+text_labels = [df_clean.iloc[j]["country"] if j in top_outliers else "" for j in range(len(df_clean))]
+
+# Color by Continent
+continent_colors = {
+    "Africa": "#66c2a5", "Asia": "#fc8d62", "Europe": "#8da0cb",
+    "North America": "#e78ac3", "South America": "#a6d854",
+    "Oceania": "#ffd92f", "Other": "#b3b3b3"
+}
+
+colors = [continent_colors.get(c, "gray") for c in df_clean["Continent"]]
+
+# Plot
+fig = go.Figure()
+
+# Scatter
+fig.add_trace(go.Scatter(
+    x=df_clean["Birth rate, crude (per 1,000 people)"],
+    y=df_clean["ORS Treatment Coverage"],
+    text=text_labels,
+    textposition="top center",
+    mode="markers+text",
+    marker=dict(
+        size=df_clean["GDP Size"],
+        color=colors,
+        opacity=0.85,
+        line=dict(width=0.5, color="black")
+    ),
+   hovertemplate=(
+        "<b>%{customdata}</b><br>" +
+        "Birth Rate: %{x:.1f}<br>" +
+        "ORS Treatment Coverage: %{y:.1f}%<br>" +
+        "GDP per Capita: %{marker.size:.0f} $<extra></extra>"
+    ),
+    customdata=df_clean["country"],  # Country name shown on hover
+    showlegend=False
+))
+
+# Regression line
+fig.add_trace(go.Scatter(
+    x=x_line,
+    y=y_line,
+    mode="lines",
+    name="Regression Line",
+    line=dict(color="black", dash="dot")
+))
+# Legend bubbles
+for continent, color in continent_colors.items():
+    fig.add_trace(go.Scatter(
+        x=[None], y=[None],
+        mode='markers',
+        marker=dict(size=15, color=color),
+        name=continent,
+        showlegend=True
+    ))
+# Bubble size legend
+fig.add_trace(go.Scatter(
+    x=[None], y=[None],
+    mode="markers",
+    marker=dict(size=30, color="lightgray", opacity=0.5, line=dict(width=0.5, color="black")),
+    name="Bubble Size: GDP per Capita",
+    showlegend=True
+))
+# Layout
+fig.update_layout(
+    xaxis=dict(title="Birth Rate (per 1,000 people)", gridcolor="lightgray"),
+    yaxis=dict(title="ORS Treatment Coverage (%)", gridcolor="lightgray"),
+    plot_bgcolor="#f8f9fa",
+    height=600,
+    font=dict(size=14),
+    legend_title_text="Legend"
+)
+fig.show()
+```
+
+```{python}
+#| echo: false
+#| eval: true
+
+from IPython.display import display, HTML
+# ORS SCATTER COMMENTARY
+ors_body = """
+<style>
+.bg-ors {
+  background-color: #1CABE2;
+  color: white;
+  border-radius: 12px;
+  padding: 1rem 1.4rem;
+  max-width: 52rem;
+  margin: 2rem auto;
+  font-size: 1rem;
+  line-height: 1.4;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  text-align: left;
+}
+.highlight-country {
+  background-color: #ff7676;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+  color: white;
+}
+</style>
+
+<div class="bg-ors">
+  This <strong>scatter plot</strong> explores the correlation between <strong>birth rate</strong> and <strong>ORS treatment coverage</strong>, exposing a light structural disconnect between reproductive health demands and pediatric care delivery. A significant <em>negative regression line</em> reveals that higher birth rates often coincide with lower ORS access, a trend indicative of health system stress in high-fertility settings.
+
+  <br><br>
+  Among the most concerning cases, <strong><span class="highlight-country">Azerbaijan</span></strong> emerges as a standout outlier, exhibiting one of the lowest treatment rates despite moderate fertility, underscoring a breakdown in service provision. In contrast, countries like <strong><span class="highlight-country">Swaziland</span></strong>, <strong><span class="highlight-country">Bangladesh</span></strong>, and <strong><span class="highlight-country">Djibouti</span></strong> show promising ORS coverage despite similar birth dynamics, highlighting how targeted investment and governance have the potential to make a difference.
+
+  <br><br>
+  Bubble size reflects <strong>GDP per capita</strong>, reinforcing a consistent finding: <em>economic strength typically enhances resilience in basic healthcare access</em>. Yet the variation between countries also emphasizes that policy decisions,not just income,shape child health equity.
+
+  <br><br>
+  <ul>
+    <li><strong>The implicatons are clear: high birth rates and limited ORS access worsen health outcomes, especially in areas with poor water access.</strong></li>
+  </ul>
+
+  <div style="margin-top: 1rem; font-style: italic;">
+    Understanding how birth rate intersects with health coverage help a more efficient targeting of UNICEF’s maternal and neonatal programs,turning data into impactful strategy.
+  </div>
+</div>
+"""
+display(HTML(ors_body))
+```
+
+```{python}
+#| echo: false
+#| eval: true
+
+from IPython.display import display, HTML
+
+# DISAGGREGATED DATA TITLE
+section_title = """
+<div id="gender-access" style="
+    background: linear-gradient(to right, #ffffff, #f2f2f2);
+    color: #1CABE2;
+    padding: 0.8rem 1.5rem;
+    font-size: 1.4rem;
+    font-weight: 700;
+    border-radius: 10px;
+    margin: 1.5rem auto 1rem auto;
+    width: fit-content;
+    text-align: center;
+    font-family: 'Segoe UI', sans-serif;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+">
+ORS Access Across Genders: Disaggregated view
+</div>
+"""
+display(HTML(section_title))
+```
+
+```{python}
+#| echo: false
+#| eval: true
+
+import pandas as pd
+import plotly.graph_objects as go
+# DISAGGREGATED DATA 
+# Loading dataset
+indicator_2 = pd.read_csv("unicef_indicator_2_cleaned.csv")
+
+# Cleaning 
+indicator_2["Value_in_percentage%"] = indicator_2["Value_in_percentage%"].str.rstrip('%').astype(float)
+
+# Averages
+avg_ors_by_sex = (
+    indicator_2.groupby(["Country", "sex"], as_index=False)["Value_in_percentage%"]
+    .mean()
+    .rename(columns={"Value_in_percentage%": "ORS Coverage (%)"})
+)
+
+# Pivoting 
+pivot_df = avg_ors_by_sex.pivot(index="Country", columns="sex", values="ORS Coverage (%)").dropna()
+
+# Selecting worst 5
+top_countries = pivot_df.sort_values("Total", ascending=True).head(5)
+
+# Custom colors
+sex_colors = {
+    "Male": "#87CEEB",       
+    "Female": "#FFC0CB",     
+    "Total": "#D3D3D3"      
+}
+# Plot
+fig = go.Figure()
+
+for sex in top_countries.columns:
+    fig.add_trace(go.Bar(
+        x=top_countries.index,
+        y=top_countries[sex],
+        name=sex,
+        marker_color=sex_colors.get(sex, "gray"),
+        text=[f"{v:.1f}%" for v in top_countries[sex]],
+        textposition="outside",
+        hovertemplate="<b>" + sex + "</b><br>% ORS Coverage: %{y:.1f}<extra></extra>"
+    ))
+
+# Layout
+fig.update_layout(
+    xaxis_title="Country",
+    yaxis_title="ORS Coverage (%)",
+    barmode="group",
+    template="plotly_white",
+    font=dict(size=14),
+    height=600,
+    legend_title_text="Sex",
+    margin=dict(t=60, b=80),
+    plot_bgcolor="#f9f9f9"
+)
+fig.update_yaxes(gridcolor="lightgray")
+fig.show()
+```
+
+```{python}
+#| echo: false
+#| eval: true
+
+# COMMENTARY DISAGGREGATED DATA
+gender_ors_body = """
+<style>
+.bg-gender {
+  background-color: #1CABE2;
+  color: white;
+  font-size: 1rem;
+  line-height: 1.4;
+  padding: 1rem 1.4rem;
+  border-radius: 12px;
+  max-width: 52rem;
+  margin: 2rem auto;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  text-align: left;
+}
+</style>
+
+<div class="bg-gender">
+  This <strong>grouped bar chart</strong> presents <strong>ORS treatment coverage</strong> in five countries with the lowest overall access, disaggregated by sex: <strong style="color: #FFC0CB;">girls</strong>, <strong style="color: #87CEEB;">boys</strong>, and total. The use of <span style="color: #FFC0CB;">pink</span> and <span style="color: #87CEEB;">blue</span> bars enables quick visual interpretation of any divergence between genders.
+
+  <br><br>
+  Across all five cases, the data shows <strong>no significant gender disparity</strong> in treatment rates. The minor variations observed are not consistent nor statistically indicative of systemic bias. <em>In other words, access to ORS in these regions appears equitable by sex</em> — a notable finding in a global context where healthcare inequality often persists.
+
+  <br><br>
+  However, this does not diminish the importance of disaggregated reporting. Even slight anomalies could signal local barriers or missed outreach. Monitoring <strong>who gets what care, and why</strong>, is essential for upholding <strong>equity and accountability</strong> in child health programs.
+
+  <br><br>
+  <ul>
+    <li><strong>This insight reinforces the need for gender-responsive monitoring,even when parity is present, tracking ensures that equity is preserved.</strong></li>
+  </ul>
+
+  <div style="margin-top: 1rem; font-style: italic;">
+    While the evidence here reflects balance, the principle remains: <strong>every child counts</strong>. Continued attention to sex-disaggregated data protect inclusivity in global health outcomes.
+  </div>
+</div>
+"""
+display(HTML(gender_ors_body))
+```
+
+```{python}
+#| echo: false
+#| eval: true
+
+from IPython.display import display, HTML
+# TITLE TIMELINE
+section_title = """
+<div id="progress-over-time" style="
+    background: linear-gradient(to right, #ffffff, #f2f2f2);
+    color: #1CABE2;
+    padding: 0.8rem 1.5rem;
+    font-size: 1.4rem;
+    font-weight: 700;
+    border-radius: 10px;
+    margin: 1.5rem auto 1rem auto;
+    width: fit-content;
+    text-align: center;
+    font-family: 'Segoe UI', sans-serif;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+">
+Progress Over Time: UNICEF’s Role
+</div>
+"""
+display(HTML(section_title))
+```
+
+```{python}
+#| echo: false
+#| eval: true
+
+import pandas as pd
+import plotly.graph_objects as go
+
+# Load and clean data
+water = pd.read_csv("unicef_indicator_1_cleaned.csv")
+ors = pd.read_csv("unicef_indicator_2_cleaned.csv")
+water["Value_in_percentage%"] = water["Value_in_percentage%"].str.rstrip('%').astype(float)
+ors["Value_in_percentage%"] = ors["Value_in_percentage%"].str.rstrip('%').astype(float)
+
+# Grouped averages
+water_avg = water.groupby("Year", as_index=False)["Value_in_percentage%"].mean().rename(columns={"Value_in_percentage%": "Unimproved Water Access"})
+ors_avg = ors.groupby("Year", as_index=False)["Value_in_percentage%"].mean().rename(columns={"Value_in_percentage%": "ORS Coverage"})
+
+# Initiatives
+water_events = {
+    2000: "UNICEF WASH",
+    2005: "Water Decade",
+    2008: "Handwashing",
+    2011: "Water Aid",
+    2015: "SDG 6",
+    2018: "Urban Plans",
+    2021: "Water for Children"
+}
+ors_events = {
+    2001: "ORS Scale-Up",
+    2006: "Zinc Endorsed",
+    2009: "Supply Push",
+    2012: "Integration",
+    2014: "Child Health",
+    2017: "mHealth ORS",
+    2021: "ORS Summit"
+}
+
+# First and last values
+start_year = water_avg["Year"].min()
+end_year = water_avg["Year"].max()
+start_water = water_avg.loc[water_avg["Year"] == start_year, "Unimproved Water Access"].values[0]
+end_water = water_avg.loc[water_avg["Year"] == end_year, "Unimproved Water Access"].values[0]
+start_ors = ors_avg.loc[ors_avg["Year"] == start_year, "ORS Coverage"].values[0]
+end_ors = ors_avg.loc[ors_avg["Year"] == end_year, "ORS Coverage"].values[0]
+
+# Plot
+fig = go.Figure()
+
+# Add lines
+fig.add_trace(go.Scatter(
+    x=water_avg["Year"], y=water_avg["Unimproved Water Access"],
+    mode="lines+markers", name="Unimproved Water Access",
+    line=dict(color="#1CABE2", width=4), marker=dict(size=6)
+))
+
+fig.add_trace(go.Scatter(
+    x=ors_avg["Year"], y=ors_avg["ORS Coverage"],
+    mode="lines+markers", name="ORS Coverage",
+    line=dict(color="#90ee90", width=4, dash="dot"), marker=dict(size=6)
+))
+
+# WATER: annotations below
+for i, (year, label) in enumerate(water_events.items()):
+    if year in water_avg["Year"].values:
+        y = water_avg.loc[water_avg["Year"] == year, "Unimproved Water Access"].values[0]
+        fig.add_annotation(
+            x=year, y=y,
+            text=label, showarrow=True, arrowhead=2,
+            ax=0, ay=-50 - (i % 3) * 15,
+            font=dict(size=10, color="#1CABE2"),
+            bgcolor="white"
+        )
+
+# ORS: annotations ABOVE the green line
+for i, (year, label) in enumerate(ors_events.items()):
+    if year in ors_avg["Year"].values:
+        y = ors_avg.loc[ors_avg["Year"] == year, "ORS Coverage"].values[0]
+        fig.add_annotation(
+            x=year, y=y + 10,  # Move text box higher than line
+            text=label, showarrow=True, arrowhead=2,
+            ax=0, ay=-30,  # Point down toward the line
+            font=dict(size=10, color="#2ca02c"),
+            bgcolor="white"
+        )
+
+# Start/End % values
+fig.add_annotation(x=start_year, y=start_water, text=f"{start_water:.1f}%", showarrow=False, font=dict(color="#1CABE2"))
+fig.add_annotation(x=end_year, y=end_water, text=f"{end_water:.1f}%", showarrow=False, font=dict(color="#1CABE2"))
+fig.add_annotation(x=start_year, y=start_ors + 5, text=f"{start_ors:.1f}%", showarrow=False, font=dict(color="#2ca02c"))
+fig.add_annotation(x=end_year, y=end_ors + 5, text=f"{end_ors:.1f}%", showarrow=False, font=dict(color="#2ca02c"))
+
+# Layout
+fig.update_layout(
+    xaxis=dict(title="Year", dtick=2, gridcolor="rgba(0,0,0,0.05)"),
+    yaxis=dict(title="Percentage (%)", range=[0, 100], gridcolor="rgba(0,0,0,0.05)"),
+    plot_bgcolor="#f8f9fa",
+    height=500,
+    width=800,
+    margin=dict(l=40, r=40, t=40, b=50),
+    font=dict(size=12),
+    legend=dict(
+        orientation="h",
+        yanchor="bottom", y=-0.25,
+        xanchor="center", x=0.5,
+        bgcolor="rgba(255,255,255,0.95)",
+        font=dict(size=11)
+    )
+)
+
+fig.show()
+```
+
+```{python}
+#| echo: false
+#| eval: true
+from IPython.display import display, HTML
+# TIMELINE COMMENTARY
+trend_html = """
+<style>
+.bg-trend {
+  background-color: #1CABE2;
+  color: white;
+  font-size: 1.01rem;
+  padding: 1rem 1.3rem;
+  border-radius: 12px;
+  max-width: 56rem;
+  margin: 2rem auto;
+  line-height: 1.4;
+  text-align: left;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+}
+
+.bg-trend h2 {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin-bottom: 0.4rem;
+  color: #ffffff;
+}
+
+.bg-trend .section-label {
+  font-size: 1.05rem;
+  font-weight: bold;
+  margin-top: 1rem;
+  margin-bottom: 0.4rem;
+  color: #ffe600;
+}
+
+.bg-trend em {
+  font-style: italic;
+  color: #fef08a;
+}
+
+.bg-trend strong {
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.highlight {
+  background-color: #f9a8d4;
+  padding: 0 5px;
+  border-radius: 4px;
+}
+</style>
+<div class="bg-trend">
+  <p><strong>This  timeline</strong> reflects over two decades of coordinated action, charting the steady <strong>reduction in unimproved water access</strong> and the progressive <strong>expansion of ORS treatment coverage</strong> across UNICEF’s operational landscape.</p>
+
+  <div class="section-label">📉 Unimproved Water Access</div>
+  <p>Between 2000 and 2022, the global average dropped from <strong>9.0%</strong> to <strong>5.0%</strong>, a near halving in unimproved water dependency. This trend is supported by infrastructure-scale interventions like <em>WASH programs</em>, <em>Handwashing Campaigns</em>, and the landmark <em>SDG 6 commitment</em>.</p>
+
+  <div class="section-label">📈 ORS Treatment Coverage</div>
+  <p>ORS coverage advanced from <strong>29.7%</strong> to <strong>43.9%</strong>, with some fluctuations aligned to key initiatives such as <em>ORS integration</em>, <em>Zinc endorsement</em>, and <em>digital delivery methods</em>. Health access is <em>highly responsive to delivery strategies</em>.</p>
+
+  <div class="section-label">🔍 Strategic Milestones</div>
+  <p>Policy-led shifts like the <span class="highlight">Global ORS Scale-Up</span>, <span class="highlight">Clean Water for Children</span>, and <span class="highlight">Integrated Child Health campaigns</span> are impactful initiatives. They are <em>targeted intervention</em>, supporting the most vulnerable countries in delivering infrastructure growth.</p>
+
+  <div class="section-label">⚖️ Systemic Implication</div>
+  <p>While <strong>this efforts remain strong</strong>, we have not yet reached <strong> zero unimproved water access and 100% ORS treatment coverage</strong>. Bridging this initiatives with governance effort is where UNICEF must act, ensuring real impact.</p>
+
+  <p style="margin-top: 1rem; font-style: italic; color: #fef08a;">
+  The queston is: what’s next? Governments, organizatons, and each of us have a role to play. UNICEF, alongside global partners, is driving this mission forward, but achieving universal access to safe water and ORS treatment requires collective acton.
+  </p>
+</div>
+"""
+display(HTML(trend_html))
+```
+
+```{python}
+#| echo: false
+#| eval: true
+
+from IPython.display import display, HTML
+# CONCLUSION
+section_title = """
+<div id="conclusion" style="
+    background: linear-gradient(to right, #ffffff, #f2f2f2);
+    color: #1CABE2;
+    padding: 0.8rem 1.5rem;
+    font-size: 1.4rem;
+    font-weight: 700;
+    border-radius: 10px;
+    margin: 1.5rem auto 1rem auto;
+    width: fit-content;
+    text-align: center;
+    font-family: 'Segoe UI', sans-serif;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+">
+From awareness to action: Together, We can protect every child’s future
+</div>
+"""
+display(HTML(section_title))
+```
+
+```{python}
+#| echo: false
+#| eval: true
+
+from IPython.display import display, HTML
+# CONLCUSION
+closing_html = """
+<style>
+.closing-box {
+  background: linear-gradient(to right, #ffffff, #f0f8fc);
+  border-left: 6px solid #1CABE2;
+  padding: 1.4rem 1.5rem;
+  border-radius: 12px;
+  max-width: 55rem;
+  margin: 2rem auto;
+  font-size: 1.03rem;
+  line-height: 1.4;
+  color: #1C1C1C;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+
+.closing-box strong {
+  color: #1CABE2;
+}
+
+.closing-box a {
+  color: #1CABE2;
+  font-weight: bold;
+  text-decoration: underline;
+}
+</style>
+
+<div class="closing-box">
+  <p>As this story makes clear, numbers are not just statistics, they represent children still waiting for basic rights: <strong>clean water</strong>, <strong>life-saving treatment</strong>, and a fair start in life.</p>
+
+  <p>But progress is possible. <strong>UNICEF</strong> and partners are showing what's achievable when investment meets purpose.</p>
+
+  <p><strong>The next step is ours.</strong> Advocacy, funding, innovation, each action each one of us take support the global effort for <strong>zero preventable child deaths</strong>.</p>
+
+  <p>🔗 <a href="https://www.unicef.org/wash" target="_blank">Learn more about UNICEF’s Water, Sanitation and Hygiene (WASH) programs here</a>.</p>
+</div>
+"""
+display(HTML(closing_html))
+```
